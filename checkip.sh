@@ -1,3 +1,3 @@
 #!/bin/sh
 
-curl checkip.amazonaws.com
+curl -s checkip.amazonaws.com
