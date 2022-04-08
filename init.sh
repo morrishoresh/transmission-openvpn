@@ -17,7 +17,7 @@ then
 		then
 			echo nameserver $DNS >> /etc/resolv.conf
 		fi
-done
+	done
 fi
 
 if test $(id -u transmission) -ne $XUID
