@@ -13,8 +13,11 @@ then
 
 	for DNS in $DNS1 $DNS2 $DNS3
 	do
-		echo nameserver $DNS >> /etc/resolv.conf
-	done
+		if test -n "$DNS"
+		then
+			echo nameserver $DNS >> /etc/resolv.conf
+		fi
+done
 fi
 
 if test $(id -u transmission) -ne $XUID
@@ -36,4 +39,9 @@ then
 fi
 
 cd /etc/openvpn
-openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2
+
+while :
+do
+	openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2
+	sleep 3
+done
