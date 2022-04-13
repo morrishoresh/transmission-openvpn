@@ -42,6 +42,7 @@ cd /etc/openvpn
 
 while :
 do
+	pkill transmission
 	openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2
 	sleep 3
 done
