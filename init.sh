@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if test -z "$AUTHFILE"
+then
+	AUTHFILE=auth.txt
+fi
+
 if test $(id -u) -ne 0
 then
 	echo "You must run this as root"
@@ -43,6 +48,6 @@ cd /etc/openvpn
 while :
 do
 	pkill transmission
-	openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2
+	openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2 --auth-user-pass $AUTHFILE
 	sleep 3
 done
