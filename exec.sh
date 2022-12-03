@@ -17,7 +17,7 @@ fi
 
 docker run \
 -v /etc/openvpn:/etc/openvpn \
--v /home/transmission:$TRANSMISSION_HOME_DIR \
+-v $TRANSMISSION_HOME_DIR:/home/transmission \
 -e XUID=$(id -u $TRANSMISSION_USER)  \
 -e XGID=$(id -g $TRANSMISSION_USER) \
 -e DNS1=1.1.1.1 \
