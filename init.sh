@@ -56,6 +56,9 @@ cd /etc/openvpn
 
 #run openvpn + transmission daemon
 #note that the daemoin runs as "transmission"
+
+/monitor.sh &
+
 while :
 do
 	pkill transmission
