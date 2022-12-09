@@ -1,5 +1,15 @@
 #!/bin/sh
 
+if [ "$1" = "-s" ]
+then
+	shift
+	if test -n "$1"
+	then
+		sleep $1;
+		shift
+	fi
+fi
+
 if test -n "$1"
 then
 	TRANSMISSION_USER=$1

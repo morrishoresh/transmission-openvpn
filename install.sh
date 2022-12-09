@@ -19,6 +19,7 @@ docker run -dit --name=transmission-init --rm $DOCKER_BASE_IMAGE bash
 #copy files
 docker cp init.sh transmission-init:/init.sh
 docker cp checkip.sh transmission-init:/checkip.sh
+docker cp monitor.sh transmission-init:/monitor.sh
 
 #install packages
 docker exec transmission-init apt update
