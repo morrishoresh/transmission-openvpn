@@ -10,7 +10,7 @@ fi
 #remove exiting transmission image
 docker image rm transmission 2>/dev/null
 
-#make sure there is not init image
+#make sure there is no init image
 docker rm -f transmission-init 2>/dev/null
 
 #run init image
