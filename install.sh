@@ -7,6 +7,9 @@ else
 	DOCKER_BASE_IMAGE=$1
 fi
 
+#stop existing transmission instance
+docker kill transmission 2>/dev/null
+
 #remove exiting transmission image
 docker image rm transmission 2>/dev/null
 
