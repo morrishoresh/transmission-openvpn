@@ -29,7 +29,7 @@ docker exec transmission-init apt update
 docker exec transmission-init apt install curl openvpn transmission-daemon -y
 
 #add transmission user
-docker exec -it transmission-init adduser --no-create-home --disabled-password -q transmission
+docker exec -it transmission-init adduser --no-create-home --disabled-password -q --gecos "" transmission
 
 #create transmission image
 docker commit transmission-init transmission
