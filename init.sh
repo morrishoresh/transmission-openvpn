@@ -55,7 +55,7 @@ fi
 cd /etc/openvpn
 
 #run openvpn + transmission daemon
-#note that the daemoin runs as "transmission"
+#note that the daemon runs as "transmission"
 
 /monitor.sh &
 
