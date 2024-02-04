@@ -2,7 +2,7 @@
 
 if  test -n "$(docker ps -q -f name=transmission)"
 then
-	echo transmission already running
+	echo transmission is already running
 	exit 1
 fi
 
