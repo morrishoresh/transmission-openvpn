@@ -1,5 +1,11 @@
 #!/bin/sh
 
+if [ ! -z "$(docker ps -q -f name=transmission)" ]
+then
+	echo transmission already running
+	exit 1
+fi
+
 if [ "$1" = "-s" ]
 then
 	shift
