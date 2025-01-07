@@ -1,5 +1,12 @@
 #!/bin/sh
 
+for arg in "$@"; do
+	if [ "$arg" = "--no-vpn" ]
+	then
+		NOVPN=true
+	fi
+done
+
 if test -z "$AUTHFILE"
 then
 	AUTHFILE=auth.txt
@@ -57,11 +64,19 @@ cd /etc/openvpn
 #run openvpn + transmission daemon
 #note that the daemon runs as "transmission"
 
-/monitor.sh &
+if test -z $NOVPN
+then
+	/monitor.sh &
+fi
 
 while :
 do
 	pkill transmission
-	openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2 --auth-user-pass $AUTHFILE
+	if test -z $NOVPN
+	then
+		echo openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2 --auth-user-pass $AUTHFILE
+	else
+		/usr/bin/su -l transmission -c "transmission-daemon -f >/dev/null 2>&1"
+	fi
 	sleep 3
 done
