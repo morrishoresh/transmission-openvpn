@@ -7,11 +7,6 @@ for arg in "$@"; do
 	fi
 done
 
-if test -z "$AUTHFILE"
-then
-	AUTHFILE=auth.txt
-fi
-
 if test $(id -u) -ne 0
 then
 	echo "You must run this as root"
@@ -59,24 +54,31 @@ then
 	usermod -d /home/transmission transmission
 fi
 
-cd /etc/openvpn
-
 #run openvpn + transmission daemon
 #note that the daemon runs as "transmission"
 
 if test -z $NOVPN
 then
+	if test -z "$AUTHFILE"
+	then
+		AUTHFILE=auth.txt
+	fi
+
+	cd /etc/openvpn
+
 	/monitor.sh &
 fi
 
 while :
 do
 	pkill transmission
+
 	if test -z $NOVPN
 	then
-		echo openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2 --auth-user-pass $AUTHFILE
+		openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2 --auth-user-pass $AUTHFILE
 	else
 		/usr/bin/su -l transmission -c "transmission-daemon -f >/dev/null 2>&1"
 	fi
+
 	sleep 3
 done
