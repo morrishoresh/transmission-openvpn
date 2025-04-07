@@ -14,7 +14,7 @@ then
 fi
 
 
-#create nameserver list
+# create nameserver list
 if test -n "$DNS1$DNS2$DNS3"
 then
 	echo have dns
@@ -33,29 +33,29 @@ fi
 # of the host transmission user (which may have another name in the host) so that
 # the dokcer user would have permission to access the host user's resources
 
-#change docker user's UID
+# change docker user's UID
 if test $(id -u transmission) -ne $XUID
 then
 	echo changing uid
 	usermod -o -u "$XUID" transmission
 fi
 
-#change docker user's GID
+# change docker user's GID
 if test $(id -g transmission) -ne $XGID
 then
 	echo changing gid
 	groupmod -g "$XGID" transmission
 fi
 
-#set the home directory
+# set the home directory
 if test  "$(getent passwd transmission | cut -d: -f6)" != "/home/transmission"
 then
 	echo changing home dir
 	usermod -d /home/transmission transmission
 fi
 
-#run openvpn + transmission daemon
-#note that the daemon runs as "transmission"
+# run openvpn + transmission daemon
+# note that the daemon runs as "transmission"
 
 if test -z $NOVPN
 then
@@ -69,14 +69,17 @@ then
 	/monitor.sh &
 fi
 
+# make sure transmission is not running before we start
+pkill transmission
+
 while :
 do
-	pkill transmission
-
 	if test -z $NOVPN
 	then
 		openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2 --auth-user-pass $AUTHFILE
-	else
+		# make sure transmission is killed IMMEDIATELY after the VPN is closed so that it would not run
+  		# without the VPN even for a short while
+ 	else
 		/usr/bin/su -l transmission -c "transmission-daemon -f >/dev/null 2>&1"
 	fi
 
