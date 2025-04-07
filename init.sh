@@ -79,6 +79,7 @@ do
 		openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2 --auth-user-pass $AUTHFILE
 		# make sure transmission is killed IMMEDIATELY after the VPN is closed so that it would not run
   		# without the VPN even for a short while
+    		pkill transmission
  	else
 		/usr/bin/su -l transmission -c "transmission-daemon -f >/dev/null 2>&1"
 	fi
