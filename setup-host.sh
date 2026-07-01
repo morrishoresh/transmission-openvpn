@@ -7,7 +7,7 @@
 #
 # Run from the repo directory (same as install.sh/exec.sh).
 #
-# Usage: ./setup-host.sh [--user NAME] [--ip ADDR] [--dns1 DNS] [--dns2 DNS] [--dns3 DNS]
+# Usage: ./setup-host.sh [--user NAME] [--ip ADDR] [--dns1 DNS] [--dns2 DNS] [--dns3 DNS] [--rpc-user USER] [--rpc-password PASS]
 
 if test $(id -u) -ne 0
 then
@@ -20,6 +20,8 @@ IP_ADDR=172.18.0.2
 DNS1=1.1.1.1
 DNS2=84.200.70.40
 DNS3=1.0.0.1
+RPC_USER=""
+RPC_PASSWORD=""
 
 while test $# -gt 0
 do
@@ -44,12 +46,26 @@ do
 		DNS3=$2
 		shift 2
 		;;
+	--rpc-user)
+		RPC_USER=$2
+		shift 2
+		;;
+	--rpc-password)
+		RPC_PASSWORD=$2
+		shift 2
+		;;
 	*)
 		echo "Unknown argument: $1"
 		exit 1
 		;;
 	esac
 done
+
+# default RPC user to the transmission user if not specified
+if test -z "$RPC_USER"
+then
+	RPC_USER=$TRANSMISSION_USER
+fi
 
 # create the transmission user if it doesn't already exist
 if ! getent passwd "$TRANSMISSION_USER" >/dev/null
@@ -73,39 +89,39 @@ chown "$TRANSMISSION_USER":"$TRANSMISSION_USER" "$TORRENTS_DIR" "$DOWNLOADS_DIR"
 CONFIG_DIR="$TRANSMISSION_HOME_DIR/.config/transmission-daemon"
 SETTINGS_FILE="$CONFIG_DIR/settings.json"
 
-# create the RPC configuration if it doesn't already exist, so the web
-# interface is reachable (rpc-bind-address 0.0.0.0) and secured with
-# generated credentials and a whitelist matching the container's subnet
-if test ! -f "$SETTINGS_FILE"
+# create/overwrite the RPC configuration so the web interface is reachable
+# (rpc-bind-address 0.0.0.0) and secured with credentials and a whitelist
+mkdir -p "$CONFIG_DIR"
+
+RPC_SUBNET=$(echo "$IP_ADDR" | cut -d. -f1-3)
+
+# generate a password if one wasn't provided
+if test -z "$RPC_PASSWORD"
 then
-	echo "creating $SETTINGS_FILE"
-	mkdir -p "$CONFIG_DIR"
-
-	RPC_SUBNET=$(echo "$IP_ADDR" | cut -d. -f1-3)
 	RPC_PASSWORD=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16)
-
-	cat > "$SETTINGS_FILE" <<-EOF
-	{
-	    "download-dir": "$TORRENTS_DIR",
-	    "incomplete-dir": "$DOWNLOADS_DIR",
-	    "incomplete-dir-enabled": true,
-	    "rpc-enabled": true,
-	    "rpc-bind-address": "0.0.0.0",
-	    "rpc-port": 9091,
-	    "rpc-whitelist-enabled": true,
-	    "rpc-whitelist": "127.0.0.1,$RPC_SUBNET.*",
-	    "rpc-authentication-required": true,
-	    "rpc-username": "$TRANSMISSION_USER",
-	    "rpc-password": "$RPC_PASSWORD"
-	}
-	EOF
-
-	chown -R "$TRANSMISSION_USER":"$TRANSMISSION_USER" "$TRANSMISSION_HOME_DIR/.config"
-	chmod 600 "$SETTINGS_FILE"
-
-	echo "web interface credentials: $TRANSMISSION_USER / $RPC_PASSWORD"
-	echo "(stored in $SETTINGS_FILE - edit rpc-whitelist there too if your LAN subnet differs)"
 fi
+
+cat > "$SETTINGS_FILE" <<-EOF
+{
+    "download-dir": "$TORRENTS_DIR",
+    "incomplete-dir": "$DOWNLOADS_DIR",
+    "incomplete-dir-enabled": true,
+    "rpc-enabled": true,
+    "rpc-bind-address": "0.0.0.0",
+    "rpc-port": 9091,
+    "rpc-whitelist-enabled": true,
+    "rpc-whitelist": "127.0.0.1,$RPC_SUBNET.*",
+    "rpc-authentication-required": true,
+    "rpc-username": "$RPC_USER",
+    "rpc-password": "$RPC_PASSWORD"
+}
+EOF
+
+chown -R "$TRANSMISSION_USER":"$TRANSMISSION_USER" "$TRANSMISSION_HOME_DIR/.config"
+chmod 600 "$SETTINGS_FILE"
+
+echo "web interface credentials: $RPC_USER / $RPC_PASSWORD"
+echo "(stored in $SETTINGS_FILE - edit rpc-whitelist there too if your LAN subnet differs)"
 
 # write the start script with the DNS/IP/user settings baked in as exec.sh flags
 START_SCRIPT="start-transmission.sh"
