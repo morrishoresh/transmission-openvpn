@@ -50,23 +50,28 @@ The container expects the VPN config to be mounted from the host. Place it in on
 
 The VPN type is auto-detected from which config file exists.
 
-**Optional: Run without a VPN (testing only).** If you don't want to use a VPN tunnel, you can run with the `--no-vpn` flag. You'll use this in step 6 when starting the container.
-
 ### 4. Run setup-host.sh to configure the Transmission user and RPC
 
 ```sh
 # With RPC authentication (secure):
-sudo ./setup-host.sh --user transmission --ip 172.18.0.2 --dns1 1.1.1.1 --dns2 8.8.8.8 --dns3 8.8.4.4 --rpc-user admin --rpc-password mypassword
+sudo ./setup-host.sh --rpc-user admin --rpc-password mypassword
 
 # Without RPC authentication (for secure networks only):
-sudo ./setup-host.sh --user transmission --ip 172.18.0.2 --dns1 1.1.1.1 --dns2 8.8.8.8 --dns3 8.8.4.4
+sudo ./setup-host.sh
 ```
 
 This must run as root. It:
 - Creates the `transmission` user on the host (if missing)
 - Creates `/home/transmission/torrents` and `/home/transmission/downloads` directories (world-readable)
 - Generates `~transmission/.config/transmission-daemon/settings.json` with the given RPC settings
-- Writes `start-transmission.sh` in the current directory, embedding the DNS/IP settings for convenience
+- Writes `start-transmission.sh` in the current directory, embedding the DNS/IP/user settings for convenience
+
+**Parameters and defaults:**
+- `--user` (default: `transmission`) — host user name
+- `--ip` (default: `172.18.0.2`) — container IP on the tvpn network
+- `--dns1`, `--dns2`, `--dns3` (defaults: `1.1.1.1`, `84.200.70.40`, `1.0.0.1`) — DNS servers in the container
+- `--rpc-user` (no default) — Transmission RPC username (required if using `--rpc-password`)
+- `--rpc-password` (no default) — Transmission RPC password (required if using `--rpc-user`)
 
 **RPC authentication rules:**
 - If you provide both `--rpc-user` and `--rpc-password`: authentication is required, and the provided credentials are used
