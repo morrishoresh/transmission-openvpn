@@ -59,7 +59,10 @@ then
 fi
 
 TRANSMISSION_HOME_DIR=$(getent passwd "$TRANSMISSION_USER" | cut -d: -f6)
+
+# ensure home directory exists and is searchable by all users
 mkdir -p "$TRANSMISSION_HOME_DIR"
+chmod 755 "$TRANSMISSION_HOME_DIR"
 
 # create torrent and download directories (readable by all users)
 TORRENTS_DIR="$TRANSMISSION_HOME_DIR/torrents"
