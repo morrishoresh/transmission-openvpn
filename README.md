@@ -34,7 +34,7 @@ docker network create --subnet=172.18.0.0/24 tvpn
 
 Creates the `tvpn` network that the container attaches to at `172.18.0.2`. This must exist before running the container.
 
-### 3. Prepare the VPN configuration on the host
+### 3. Prepare the VPN configuration on the host (or skip for no-VPN mode)
 
 The container expects the VPN config to be mounted from the host. Place it in one of:
 
@@ -42,6 +42,14 @@ The container expects the VPN config to be mounted from the host. Place it in on
 - **WireGuard**: `/etc/wireguard/wg0.conf` (must include `AllowedIPs = 0.0.0.0/0` for the kill-switch; do NOT include a `DNS =` line)
 
 The VPN type is auto-detected from which config file exists.
+
+**Optional: Run without a VPN (testing only).** If you don't want to use a VPN tunnel, you can run with the `--no-vpn` flag:
+
+```sh
+./start-transmission.sh --no-vpn
+```
+
+This runs Transmission with no tunnel. Useful for testing, but **not recommended for production** (the whole point of this project is to ensure the tunnel stays up).
 
 ### 4. Run setup-host.sh to configure the Transmission user and RPC
 
