@@ -50,13 +50,7 @@ The container expects the VPN config to be mounted from the host. Place it in on
 
 The VPN type is auto-detected from which config file exists.
 
-**Optional: Run without a VPN (testing only).** If you don't want to use a VPN tunnel, you can run with the `--no-vpn` flag:
-
-```sh
-./start-transmission.sh --no-vpn
-```
-
-This runs Transmission with no tunnel. Useful for testing, but **not recommended for production** (the whole point of this project is to ensure the tunnel stays up).
+**Optional: Run without a VPN (testing only).** If you don't want to use a VPN tunnel, you can run with the `--no-vpn` flag. You'll use this in step 6 when starting the container.
 
 ### 4. Run setup-host.sh to configure the Transmission user and RPC
 
@@ -99,6 +93,13 @@ This runs `exec.sh` with the DNS/IP/user settings from step 4 already baked in. 
 - Start the VPN tunnel
 - Launch Transmission behind it
 - Kill Transmission immediately if the tunnel drops (no traffic leak)
+
+**To run without a VPN (testing only):**
+```sh
+./start-transmission.sh --no-vpn
+```
+
+This skips the VPN tunnel entirely. Not recommended for production.
 
 ## Network
 
