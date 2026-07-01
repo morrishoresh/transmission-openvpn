@@ -121,8 +121,6 @@ then
 	echo "web interface: no authentication, all addresses allowed"
 else
 	# both user and password are provided, enable authentication
-	RPC_SUBNET=$(echo "$IP_ADDR" | cut -d. -f1-3)
-
 	cat > "$SETTINGS_FILE" <<-EOF
 	{
 	    "download-dir": "$TORRENTS_DIR",
@@ -131,8 +129,7 @@ else
 	    "rpc-enabled": true,
 	    "rpc-bind-address": "0.0.0.0",
 	    "rpc-port": 9091,
-	    "rpc-whitelist-enabled": true,
-	    "rpc-whitelist": "127.0.0.1,$RPC_SUBNET.*",
+	    "rpc-whitelist-enabled": false,
 	    "rpc-authentication-required": true,
 	    "rpc-username": "$RPC_USER",
 	    "rpc-password": "$RPC_PASSWORD"
