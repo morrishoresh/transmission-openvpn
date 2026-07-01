@@ -25,8 +25,10 @@ docker cp checkip.sh transmission-init:/checkip.sh
 docker cp monitor.sh transmission-init:/monitor.sh
 
 #install packages
+# wireguard-tools provides wg/wg-quick; iproute2 + iptables are needed by wg-quick
+# (for routing and its kill-switch). The WireGuard kernel module comes from the host.
 docker exec transmission-init apt update
-docker exec transmission-init apt install curl openvpn transmission-daemon -y
+docker exec transmission-init apt install curl openvpn transmission-daemon wireguard-tools iproute2 iptables -y
 
 #add transmission user
 docker exec -it transmission-init adduser --no-create-home --disabled-password -q --gecos "" transmission

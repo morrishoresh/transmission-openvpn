@@ -1,10 +1,80 @@
 # transmission-openvpn
 
-It is assumed that the host has openvpn configuration in /etc/openvpn/default.vpn.ovpn <br />
+Runs the Transmission daemon behind a VPN (OpenVPN or WireGuard). Transmission never has network access without an active tunnel. <br /> <br />
+
+The VPN type is auto-detected: if /etc/wireguard/wg0.conf exists WireGuard is used, otherwise OpenVPN. Set the VPN_TYPE env var (openvpn|wireguard) to force one. <br /> <br />
+
+OpenVPN: the host must have configuration in /etc/openvpn/default.vpn.ovpn <br />
+WireGuard: the host must have configuration in /etc/wireguard/wg0.conf, and the host kernel must support WireGuard (built into Linux 5.6+). Do NOT put a "DNS =" line in wg0.conf — DNS is set from the DNS1/DNS2/DNS3 env vars. Use AllowedIPs = 0.0.0.0/0 so wg-quick installs its kill-switch. <br />
 
 Environment variables: <br /> <br />
-AUTHFILE: the VPN user authentication. default is /etc/openvpn/auth.txt <br />
+VPN_TYPE: openvpn or wireguard. Overrides auto-detection. <br />
+AUTHFILE: the OpenVPN user authentication. default is /etc/openvpn/auth.txt <br />
 DNS1, DNS2, DNS3: DNS servers. <br />
 XUID: the UID of the transmission user on the host <br />
 XGID: the GID of the transmission user on the host <br />
+
+## Network
+
+`exec.sh` attaches the container to a Docker network named `tvpn` at the static IP `172.18.0.2`. This network is not created by the scripts — you must create it once on the host before running `exec.sh`:
+
+```sh
+docker network create --subnet=172.18.0.0/24 tvpn
+```
+
+The subnet must contain the `172.18.0.2` address used in `exec.sh`. To use a different name, subnet, or IP, change the `--net` and `--ip` values in `exec.sh` (and the subnet above) to match. Verify the network exists with:
+
+```sh
+docker network ls
+```
+
+## Web interface
+
+The Transmission RPC / web interface listens on port 9091. `exec.sh` publishes it with `-p 9091:9091`, so Docker automatically creates the host-side DNAT/MASQUERADE/FORWARD rules needed to reach it at `http://<host-address>:9091` — no manual iptables required for that part. Two things still need configuring: Transmission's own RPC settings, and — for WireGuard only — a rule that lets the container's replies back out past its kill-switch.
+
+### 1. Transmission (`settings.json`)
+
+The daemon reads `settings.json` from the mounted home directory, i.e. on the host at:
+
+```
+$TRANSMISSION_HOME_DIR/.config/transmission-daemon/settings.json
+```
+
+Transmission **overwrites this file when it exits**, so stop the container before editing, then start it again:
+
+```sh
+docker kill transmission                 # stop the daemon so it won't overwrite your edits
+# edit settings.json (see keys below)
+./exec.sh                                # start again
+```
+
+Set these keys so the interface accepts connections from outside the container (the default binds to localhost and whitelists only `127.0.0.1`):
+
+```json
+"rpc-enabled": true,
+"rpc-bind-address": "0.0.0.0",
+"rpc-port": 9091,
+"rpc-whitelist-enabled": true,
+"rpc-whitelist": "127.0.0.1,172.18.0.*,192.168.1.*",
+"rpc-authentication-required": true,
+"rpc-username": "your-user",
+"rpc-password": "your-password"
+```
+
+Notes:
+- `rpc-bind-address` must be `0.0.0.0` (not `127.0.0.1`) so the interface is reachable over the Docker network.
+- The whitelist must include whatever source address the request actually arrives with. Since `exec.sh` publishes the port with `-p 9091:9091`, Docker preserves the real client IP for connections coming from other machines on the LAN (e.g. `192.168.1.*` — replace with your actual LAN subnet) — it only rewrites the source to the Docker gateway (`172.18.0.1`) for the loopback/hairpin case of browsing from the Docker host itself using its own address. If a request gets rejected, Transmission's log names the offending IP; add it (or its subnet) to the whitelist, or set `"rpc-whitelist-enabled": false` to disable the check entirely (less secure).
+- Setting `rpc-password` to a plaintext value is fine; Transmission replaces it with a salted hash on next start.
+
+### 2. WireGuard return rule (container, WireGuard only)
+
+Publishing the port with `-p` only sets up the host-side plumbing to get a request *in* to the container — it doesn't affect a separate problem: getting the reply back *out*. With `AllowedIPs = 0.0.0.0/0`, `wg-quick` installs a kill-switch that **rejects any outbound packet not leaving through the `wg0` tunnel** — including RPC replies going back over the Docker network — regardless of how the connection got in. OpenVPN does not add this kill-switch, so this step is not needed for OpenVPN.
+
+Because the kill-switch is re-created every time the tunnel comes up (and the container is `--rm`, so nothing persists), add the rule in the `[Interface]` section of `/etc/wireguard/wg0.conf` as a `PostUp` hook — `wg-quick` runs `PostUp` after the kill-switch is in place, and `-I` inserts the allow rule ahead of it:
+
+```ini
+PostUp = iptables -I OUTPUT -d 172.18.0.0/24 -j ACCEPT
+```
+
+Use the same subnet you created the `tvpn` network with. After editing `wg0.conf`, restart the container (`docker kill transmission` then `./exec.sh`) for the change to take effect.
 
