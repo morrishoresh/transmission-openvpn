@@ -32,7 +32,14 @@ Builds the `transmission` Docker image with Transmission, OpenVPN, WireGuard too
 docker network create --subnet=172.18.0.0/24 tvpn
 ```
 
-Creates the `tvpn` network that the container attaches to at `172.18.0.2`. This must exist before running the container.
+Creates the `tvpn` network that the container attaches to. The default subnet is `172.18.0.0/24` with the container at `172.18.0.2`, but you can use any subnet. For example:
+
+```sh
+# Use a different subnet (e.g., 192.168.2.0/24):
+docker network create --subnet=192.168.2.0/24 tvpn
+```
+
+If you use a different subnet, you must also pass the matching `--ip` to `setup-host.sh` and `exec.sh` (e.g., `--ip 192.168.2.2`).
 
 ### 3. Prepare the VPN configuration on the host (or skip for no-VPN mode)
 
@@ -95,14 +102,29 @@ This runs `exec.sh` with the DNS/IP/user settings from step 4 already baked in. 
 
 ## Network
 
-`exec.sh` attaches the container to a Docker network named `tvpn` at the static IP `172.18.0.2`. This network is not created by the scripts — you must create it once on the host before running `exec.sh`:
+`exec.sh` attaches the container to a Docker network named `tvpn` at a static IP (default `172.18.0.2` on the `172.18.0.0/24` subnet). This network is not created by the scripts — you must create it once on the host before running the container.
 
+The default setup:
 ```sh
 docker network create --subnet=172.18.0.0/24 tvpn
 ```
 
-The subnet must contain the `172.18.0.2` address used in `exec.sh`. To use a different name, subnet, or IP, change the `--net` and `--ip` values in `exec.sh` (and the subnet above) to match. Verify the network exists with:
+**Custom subnet example:** If you want to use a different subnet (e.g., `192.168.2.0/24`):
 
+```sh
+# 1. Create network with custom subnet
+docker network create --subnet=192.168.2.0/24 tvpn
+
+# 2. Run setup-host.sh with matching IP
+sudo ./setup-host.sh --ip 192.168.2.2 [other options]
+
+# 3. The container will use 192.168.2.2 on startup
+./start-transmission.sh
+```
+
+The key is: **the IP you pass to `setup-host.sh` must be within the subnet you created for the `tvpn` network.**
+
+Verify the network exists:
 ```sh
 docker network ls
 ```
