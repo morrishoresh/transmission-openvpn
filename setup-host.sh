@@ -7,9 +7,11 @@
 #
 # Run from the repo directory (same as install.sh/exec.sh).
 #
-# Usage: ./setup-host.sh [--user NAME] [--ip ADDR] [--dns1 DNS] [--dns2 DNS] [--dns3 DNS] [--rpc-user USER] [--rpc-password PASS] [--no-rpc-auth]
+# Usage: ./setup-host.sh [--user NAME] [--ip ADDR] [--dns1 DNS] [--dns2 DNS] [--dns3 DNS] [--rpc-user USER] [--rpc-password PASS]
 #
-# --no-rpc-auth: disable RPC authentication and whitelist all addresses (for secure networks only)
+# RPC authentication: if both --rpc-user and --rpc-password are provided, authentication is
+# required. If neither is provided, authentication is disabled (for secure networks only).
+# If only one is provided, an error is raised.
 
 if test $(id -u) -ne 0
 then
@@ -24,7 +26,6 @@ DNS2=84.200.70.40
 DNS3=1.0.0.1
 RPC_USER=""
 RPC_PASSWORD=""
-NO_RPC_AUTH=false
 
 while test $# -gt 0
 do
@@ -57,10 +58,6 @@ do
 		RPC_PASSWORD=$2
 		shift 2
 		;;
-	--no-rpc-auth)
-		NO_RPC_AUTH=true
-		shift
-		;;
 	*)
 		echo "Unknown argument: $1"
 		exit 1
@@ -68,10 +65,17 @@ do
 	esac
 done
 
-# default RPC user to the transmission user if not specified
-if test -z "$RPC_USER"
+# validate RPC user/password: both must be provided together, or neither
+if test -z "$RPC_USER" && test -n "$RPC_PASSWORD"
 then
-	RPC_USER=$TRANSMISSION_USER
+	echo "Error: --rpc-password provided without --rpc-user"
+	exit 1
+fi
+
+if test -n "$RPC_USER" && test -z "$RPC_PASSWORD"
+then
+	echo "Error: --rpc-user provided without --rpc-password"
+	exit 1
 fi
 
 # create the transmission user if it doesn't already exist
@@ -99,7 +103,7 @@ SETTINGS_FILE="$CONFIG_DIR/settings.json"
 # create/overwrite the RPC configuration so the web interface is reachable
 mkdir -p "$CONFIG_DIR"
 
-if test "$NO_RPC_AUTH" = "true"
+if test -z "$RPC_USER" && test -z "$RPC_PASSWORD"
 then
 	# no authentication, no whitelist (assumes secure network)
 	cat > "$SETTINGS_FILE" <<-EOF
@@ -116,12 +120,7 @@ then
 	EOF
 	echo "web interface: no authentication, all addresses allowed"
 else
-	# generate a password if one wasn't provided
-	if test -z "$RPC_PASSWORD"
-	then
-		RPC_PASSWORD=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16)
-	fi
-
+	# both user and password are provided, enable authentication
 	RPC_SUBNET=$(echo "$IP_ADDR" | cut -d. -f1-3)
 
 	cat > "$SETTINGS_FILE" <<-EOF
