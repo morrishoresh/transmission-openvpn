@@ -24,7 +24,7 @@ Follow these steps in order. Steps 1–4 run once; step 6 runs every time you st
 ./install.sh [base-image]
 ```
 
-Builds the `transmission` Docker image with Transmission, OpenVPN, WireGuard tools, and other dependencies. Optional `base-image` defaults to `ubuntu`.
+Builds the `transmission` Docker image with Transmission, OpenVPN, WireGuard tools, and other dependencies. Optional `base-image` defaults to `ubuntu`. If the base image doesn't exist locally, Docker automatically pulls it from Docker Hub — no need to download it yourself.
 
 ### 2. Create the Docker network
 
