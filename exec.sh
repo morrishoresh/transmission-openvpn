@@ -1,20 +1,49 @@
 #!/bin/sh
 
+# Usage: ./exec.sh [-s [seconds]] [--ip ADDR] [--dns1 DNS] [--dns2 DNS] [--dns3 DNS] [transmission-user]
+
 if  test -n "$(docker ps -q -f name=transmission)"
 then
 	echo transmission is already running
 	exit 1
 fi
 
-if [ "$1" = "-s" ]
-then
-	shift
-	if test -n "$1"
-	then
-		sleep $1;
+IP_ADDR=172.18.0.2
+DNS1=1.1.1.1
+DNS2=84.200.70.40
+DNS3=1.0.0.1
+
+while test $# -gt 0
+do
+	case "$1" in
+	-s)
 		shift
-	fi
-fi
+		case "$1" in
+		''|*[!0-9]*) ;;
+		*) sleep "$1"; shift ;;
+		esac
+		;;
+	--ip)
+		IP_ADDR=$2
+		shift 2
+		;;
+	--dns1)
+		DNS1=$2
+		shift 2
+		;;
+	--dns2)
+		DNS2=$2
+		shift 2
+		;;
+	--dns3)
+		DNS3=$2
+		shift 2
+		;;
+	*)
+		break
+		;;
+	esac
+done
 
 if test -n "$1"
 then
@@ -59,11 +88,11 @@ $VPN_MOUNT \
 -e VPN_TYPE=$VPN_TYPE \
 -e XUID=$(id -u $TRANSMISSION_USER)  \
 -e XGID=$(id -g $TRANSMISSION_USER) \
--e DNS1=1.1.1.1 \
--e DNS2=84.200.70.40 \
--e DNS3=1.0.0.1 \
+-e DNS1=$DNS1 \
+-e DNS2=$DNS2 \
+-e DNS3=$DNS3 \
 --net=tvpn \
---ip=172.18.0.2 \
+--ip=$IP_ADDR \
 -p 9091:9091 \
 --name=transmission \
 --rm --privileged -d \
