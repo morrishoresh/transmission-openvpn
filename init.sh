@@ -3,7 +3,7 @@
 for arg in "$@"; do
 	if [ "$arg" = "--no-vpn" ]
 	then
-		NOVPN=true
+		VPN_TYPE=none
 	fi
 done
 
@@ -12,6 +12,20 @@ then
 	echo "You must run this as root"
 	exit 1
 fi
+
+# Resolve which VPN to use. An explicit VPN_TYPE (env var or --no-vpn) wins;
+# otherwise auto-detect from the mounted config: WireGuard if a wg0.conf is
+# present, OpenVPN otherwise.
+if test -z "$VPN_TYPE"
+then
+	if test -f /etc/wireguard/wg0.conf
+	then
+		VPN_TYPE=wireguard
+	else
+		VPN_TYPE=openvpn
+	fi
+fi
+echo "using VPN_TYPE=$VPN_TYPE"
 
 
 # create nameserver list
@@ -54,19 +68,14 @@ then
 	usermod -d /home/transmission transmission
 fi
 
-# run openvpn + transmission daemon
-# note that the daemon runs as "transmission"
+# run the VPN + transmission daemon
+# note that the daemon always runs as "transmission"
 
-if test -z $NOVPN
+# start the kill-switch monitor for any VPN mode (it tears the VPN down when
+# the public IP check fails, which makes the loop below rebuild the session)
+if test "$VPN_TYPE" != "none"
 then
-	if test -z "$AUTHFILE"
-	then
-		AUTHFILE=auth.txt
-	fi
-
-	cd /etc/openvpn
-
-	/monitor.sh &
+	/monitor.sh "$VPN_TYPE" &
 fi
 
 # make sure transmission is not running before we start
@@ -74,15 +83,35 @@ pkill transmission
 
 while :
 do
-	if test -z $NOVPN
-	then
+	case "$VPN_TYPE" in
+	openvpn)
+		if test -z "$AUTHFILE"
+		then
+			AUTHFILE=auth.txt
+		fi
+		cd /etc/openvpn
+		# openvpn stays in the foreground; --up starts the daemon once the tunnel is up
 		openvpn --config default.vpn.ovpn --up "/usr/bin/su -l transmission -c transmission-daemon" --script-security 2 --auth-user-pass $AUTHFILE
 		# make sure transmission is killed IMMEDIATELY after the VPN is closed so that it would not run
-  		# without the VPN even for a short while
-    		pkill transmission
- 	else
+		# without the VPN even for a short while
+		pkill transmission
+		;;
+	wireguard)
+		# wg-quick returns as soon as the interface is configured, so we run the
+		# daemon in the foreground and treat its exit as "tunnel gone": the monitor
+		# kills transmission when the IP check fails, unblocking us to tear the
+		# tunnel down and rebuild it. With AllowedIPs=0.0.0.0/0 wg-quick installs a
+		# firewall kill-switch, so nothing leaks while the tunnel is up.
+		wg-quick down wg0 2>/dev/null
+		wg-quick up wg0
 		/usr/bin/su -l transmission -c "transmission-daemon -f >/dev/null 2>&1"
-	fi
+		wg-quick down wg0 2>/dev/null
+		pkill transmission
+		;;
+	none)
+		/usr/bin/su -l transmission -c "transmission-daemon -f >/dev/null 2>&1"
+		;;
+	esac
 
 	sleep 3
 done
