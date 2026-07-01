@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Usage: ./exec.sh [-s [seconds]] [--ip ADDR] [--dns1 DNS] [--dns2 DNS] [--dns3 DNS] [transmission-user]
+# Usage: ./exec.sh [-s [seconds]] [--ip ADDR] [--dns1 DNS] [--dns2 DNS] [--dns3 DNS] [--no-vpn] [transmission-user]
 
 if  test -n "$(docker ps -q -f name=transmission)"
 then
@@ -12,6 +12,7 @@ IP_ADDR=172.18.0.2
 DNS1=1.1.1.1
 DNS2=84.200.70.40
 DNS3=1.0.0.1
+NO_VPN_FLAG=""
 
 while test $# -gt 0
 do
@@ -38,6 +39,10 @@ do
 	--dns3)
 		DNS3=$2
 		shift 2
+		;;
+	--no-vpn)
+		NO_VPN_FLAG="--no-vpn"
+		shift
 		;;
 	*)
 		break
@@ -96,6 +101,6 @@ $VPN_MOUNT \
 -p 9091:9091 \
 --name=transmission \
 --rm --privileged -d \
-transmission /init.sh
+transmission /init.sh $NO_VPN_FLAG
 
 exit $?
