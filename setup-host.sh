@@ -61,6 +61,13 @@ fi
 TRANSMISSION_HOME_DIR=$(getent passwd "$TRANSMISSION_USER" | cut -d: -f6)
 mkdir -p "$TRANSMISSION_HOME_DIR"
 
+# create torrent and download directories (readable by all users)
+TORRENTS_DIR="$TRANSMISSION_HOME_DIR/torrents"
+DOWNLOADS_DIR="$TRANSMISSION_HOME_DIR/downloads"
+mkdir -p "$TORRENTS_DIR" "$DOWNLOADS_DIR"
+chmod 755 "$TORRENTS_DIR" "$DOWNLOADS_DIR"
+chown "$TRANSMISSION_USER":"$TRANSMISSION_USER" "$TORRENTS_DIR" "$DOWNLOADS_DIR"
+
 CONFIG_DIR="$TRANSMISSION_HOME_DIR/.config/transmission-daemon"
 SETTINGS_FILE="$CONFIG_DIR/settings.json"
 
@@ -77,6 +84,9 @@ then
 
 	cat > "$SETTINGS_FILE" <<-EOF
 	{
+	    "download-dir": "$TORRENTS_DIR",
+	    "incomplete-dir": "$DOWNLOADS_DIR",
+	    "incomplete-dir-enabled": true,
 	    "rpc-enabled": true,
 	    "rpc-bind-address": "0.0.0.0",
 	    "rpc-port": 9091,
