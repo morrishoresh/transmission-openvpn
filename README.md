@@ -2,13 +2,13 @@
 
 Runs the Transmission daemon behind a VPN (OpenVPN or WireGuard). Transmission never has network access without an active tunnel. <br /> <br />
 
-The VPN type is auto-detected: if /etc/wireguard/wg0.conf exists WireGuard is used, otherwise OpenVPN. Set the VPN_TYPE env var (openvpn|wireguard) to force one. <br /> <br />
+The VPN type is auto-detected: if /etc/wireguard/wg0.conf exists WireGuard is used, otherwise OpenVPN. Set the VPN_TYPE env var (openvpn|wireguard|none) to force one (or use --no-vpn flag). <br /> <br />
 
 OpenVPN: the host must have configuration in /etc/openvpn/default.vpn.ovpn <br />
 WireGuard: the host must have configuration in /etc/wireguard/wg0.conf, and the host kernel must support WireGuard (built into Linux 5.6+). Do NOT put a "DNS =" line in wg0.conf — DNS is set from the DNS1/DNS2/DNS3 env vars. Use AllowedIPs = 0.0.0.0/0 so wg-quick installs its kill-switch. <br />
 
 Environment variables (set inside the container by `exec.sh`, not by hand): <br /> <br />
-VPN_TYPE: openvpn or wireguard. Overrides auto-detection. <br />
+VPN_TYPE: openvpn, wireguard, or none. Overrides auto-detection. <br />
 AUTHFILE: the OpenVPN user authentication. default is /etc/openvpn/auth.txt <br />
 DNS1, DNS2, DNS3: DNS servers. Set via `exec.sh`'s `--dns1`/`--dns2`/`--dns3` flags, see below. <br />
 XUID: the UID of the transmission user on the host <br />
